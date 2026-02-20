@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prank Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d0d0d;
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .bg-grid {
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+            background-size: 36px 36px;
+            pointer-events: none; z-index: 0;
+        }
+        .wrapper { position: relative; z-index: 1; width: 100%; max-width: 520px; }
+        .header { text-align: center; margin-bottom: 36px; }
+        .header h1 { font-size: 1.5rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; }
+        .header p { color: rgba(255,255,255,0.3); font-size: 0.75rem; letter-spacing: 0.12em; margin-top: 6px; }
+        .card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; padding: 32px; margin-bottom: 14px;
+        }
+        .lbl {
+            font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase;
+            color: rgba(255,255,255,0.3); margin-bottom: 10px; display: block;
+        }
+        .upload-btn {
+            width: 100%; padding: 28px 20px;
+            background: rgba(255,255,255,0.04);
+            border: 1.5px dashed rgba(255,255,255,0.18);
+            border-radius: 12px; cursor: pointer;
+            color: rgba(255,255,255,0.5);
+            font-family: inherit; font-size: 0.85rem;
+            text-align: center; transition: all 0.2s;
+            margin-bottom: 20px; display: block;
+        }
+        .upload-btn:hover {
+            border-color: rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.8);
+        }
+        .upload-btn .icon { font-size: 1.8rem; display: block; margin-bottom: 6px; }
+        .upload-btn .sub { font-size: 0.7rem; color: rgba(255,255,255,0.2); margin-top: 4px; }
+        .file-info {
+            display: none; align-items: center; gap: 12px;
+            background: rgba(255,255,255,0.06); border-radius: 10px;
+            padding: 14px 16px; margin-bottom: 20px;
+        }
+        .file-info.show { display: flex; }
+        .file-icon { font-size: 1.4rem; }
+        .file-details { flex: 1; overflow: hidden; }
+        .file-name { font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-size { color: rgba(255,255,255,0.3); font-size: 0.7rem; margin-top: 2px; }
+        .remove-btn {
+            background: none; border: none; color: rgba(255,255,255,0.3);
+            cursor: pointer; font-size: 1rem; padding: 4px 6px; transition: color 0.2s;
+        }
+        .remove-btn:hover { color: #ff6b6b; }
+        .warn {
+            background: rgba(255,180,0,0.07); border: 1px solid rgba(255,180,0,0.2);
+            border-radius: 8px; padding: 10px 13px; font-size: 0.72rem;
+            color: rgba(255,200,80,0.8); margin-bottom: 20px;
+            display: none; line-height: 1.6;
+        }
+        .warn.show { display: block; }
+        .sep { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 22px 0; }
+        .text-input {
+            width: 100%; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+            padding: 11px 13px; color: #fff; font-size: 0.88rem;
+            font-family: inherit; outline: none; transition: border-color 0.2s;
+            margin-bottom: 12px;
+        }
+        .text-input:focus { border-color: rgba(255,255,255,0.3); }
+        .text-input::placeholder { color: rgba(255,255,255,0.2); }
+        .progress-wrap { display: none; margin-bottom: 16px; }
+        .progress-wrap.show { display: block; }
+        .progress-label { font-size: 0.7rem; color: rgba(255,255,255,0.3); margin-bottom: 5px; }
+        .progress-bg { background: rgba(255,255,255,0.07); border-radius: 100px; height: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #fff; border-radius: 100px; width: 0%; transition: width 0.1s; }
+        .gen-btn {
+            width: 100%; padding: 15px;
+            background: #fff; color: #000; border: none; border-radius: 10px;
+            font-size: 0.85rem; font-weight: 700; letter-spacing: 0.2em;
+            text-transform: uppercase; cursor: pointer; transition: opacity 0.2s;
+        }
+        .gen-btn:hover:not(:disabled) { opacity: 0.85; }
+        .gen-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+        .status {
+            text-align: center; font-size: 0.75rem; color: rgba(255,255,255,0.3);
+            margin-top: 14px; letter-spacing: 0.05em; min-height: 18px;
+        }
+        .status.ok { color: #6ee7b7; }
+        .status.err { color: #ff8a80; }
+        #fileInput { display: none; }
+        .preview {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px; padding: 18px; display: none;
+        }
+        .preview.show { display: block; }
+        .preview-lbl { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.18); margin-bottom: 10px; }
+        .preview-box {
+            background: #000; border-radius: 8px; height: 90px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; font-weight: 300; letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.65);
+        }
+    </style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<input type="file" id="fileInput" accept="*/*">
+
+<div class="wrapper">
+    <div class="header">
+        <h1>Prank Generator</h1>
+        <p>upload file → jadi HTML jebakan siap kirim</p>
+    </div>
+
+    <div class="card">
+        <span class="lbl">① pilih file yang bakal diunduh korban</span>
+
+        <button class="upload-btn" id="uploadBtn" type="button">
+            <span class="icon">📁</span>
+            Klik di sini untuk pilih file
+            <div class="sub">MP3 · Video · APK · ZIP · Gambar · dll</div>
+        </button>
+
+        <div class="file-info" id="fileInfo">
+            <span class="file-icon" id="fileEmoji">📄</span>
+            <div class="file-details">
+                <div class="file-name" id="fileName">—</div>
+                <div class="file-size" id="fileSize">—</div>
+            </div>
+            <button class="remove-btn" id="removeBtn" type="button">✕</button>
+        </div>
+
+        <div class="warn" id="sizeWarn">
+            ⚠️ File lebih dari 30MB — HTML-nya bakal berat, tapi tetap bisa dipakai.
+        </div>
+
+        <div class="progress-wrap" id="progWrap">
+            <div class="progress-label" id="progLabel">Membaca file... 0%</div>
+            <div class="progress-bg"><div class="progress-fill" id="progFill"></div></div>
+        </div>
+
+        <hr class="sep">
+
+        <span class="lbl">② custom teks jebakan</span>
+
+        <input type="text" class="text-input" id="inBtn"   placeholder="Tulisan tombol (default: MASUK)"       maxlength="30">
+        <input type="text" class="text-input" id="inTitle" placeholder="Judul halaman (default: Web)"          maxlength="50">
+        <input type="text" class="text-input" id="inSub"   placeholder="Sub-teks (default: klik untuk lanjut)" maxlength="60">
+
+        <button class="gen-btn" id="genBtn" disabled type="button">GENERATE HTML JEBAKAN ↓</button>
+        <div class="status" id="status">Upload file dulu untuk mulai</div>
+    </div>
+
+    <div class="preview" id="preview">
+        <div class="preview-lbl">preview tampilan korban</div>
+        <div class="preview-box" id="previewBox">MASUK</div>
+    </div>
+</div>
+
+<script>
+    var fileInput  = document.getElementById('fileInput');
+    var uploadBtn  = document.getElementById('uploadBtn');
+    var fileInfo   = document.getElementById('fileInfo');
+    var fileEmoji  = document.getElementById('fileEmoji');
+    var fileNameEl = document.getElementById('fileName');
+    var fileSizeEl = document.getElementById('fileSize');
+    var removeBtn  = document.getElementById('removeBtn');
+    var sizeWarn   = document.getElementById('sizeWarn');
+    var progWrap   = document.getElementById('progWrap');
+    var progFill   = document.getElementById('progFill');
+    var progLabel  = document.getElementById('progLabel');
+    var genBtn     = document.getElementById('genBtn');
+    var statusEl   = document.getElementById('status');
+    var preview    = document.getElementById('preview');
+    var previewBox = document.getElementById('previewBox');
+    var inBtn      = document.getElementById('inBtn');
+
+    var base64Data   = null;
+    var selectedName = '';
+
+    uploadBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files && fileInput.files[0]) {
+            handleFile(fileInput.files[0]);
+        }
+    });
+
+    removeBtn.addEventListener('click', resetFile);
+
+    inBtn.addEventListener('input', function() {
+        previewBox.textContent = inBtn.value.trim() || 'MASUK';
+    });
+
+    function getEmoji(type) {
+        if (!type) return '📄';
+        if (type.startsWith('audio')) return '🎵';
+        if (type.startsWith('video')) return '🎬';
+        if (type.startsWith('image')) return '🖼️';
+        if (type.includes('zip') || type.includes('rar')) return '🗜️';
+        if (type.includes('pdf')) return '📕';
+        return '📱';
+    }
+
+    function fmtSize(b) {
+        if (b < 1024) return b + ' B';
+        if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+        return (b/1048576).toFixed(2) + ' MB';
+    }
+
+    function handleFile(file) {
+        selectedName = file.name;
+        base64Data = null;
+        genBtn.disabled = true;
+        statusEl.textContent = 'Membaca file...';
+        statusEl.className = 'status';
+
+        uploadBtn.style.display = 'none';
+        fileNameEl.textContent = file.name;
+        fileSizeEl.textContent = fmtSize(file.size);
+        fileEmoji.textContent  = getEmoji(file.type);
+        fileInfo.classList.add('show');
+        preview.classList.add('show');
+        sizeWarn.classList.toggle('show', file.size > 30 * 1024 * 1024);
+        progWrap.classList.add('show');
+        progFill.style.width = '0%';
+
+        var reader = new FileReader();
+
+        reader.onprogress = function(e) {
+            if (e.lengthComputable) {
+                var pct = Math.round((e.loaded / e.total) * 100);
+                progFill.style.width = pct + '%';
+                progLabel.textContent = 'Membaca file... ' + pct + '%';
+            }
+        };
+
+        reader.onload = function(e) {
+            progFill.style.width = '100%';
+            progLabel.textContent = 'Selesai!';
+            setTimeout(function() {
+                progWrap.classList.remove('show');
+                base64Data = e.target.result;
+                genBtn.disabled = false;
+                statusEl.textContent = '✓ File siap — klik Generate!';
+                statusEl.className = 'status ok';
+            }, 400);
+        };
+
+        reader.onerror = function() {
+            statusEl.textContent = '✗ Gagal baca file. Coba lagi.';
+            statusEl.className = 'status err';
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    function resetFile() {
+        base64Data = null;
+        selectedName = '';
+        fileInput.value = '';
+        fileInfo.classList.remove('show');
+        sizeWarn.classList.remove('show');
+        progWrap.classList.remove('show');
+        preview.classList.remove('show');
+        uploadBtn.style.display = '';
+        genBtn.disabled = true;
+        statusEl.textContent = 'Upload file dulu untuk mulai';
+        statusEl.className = 'status';
+    }
+
+    genBtn.addEventListener('click', function() {
+        if (!base64Data) return;
+
+        var btnLabel = document.getElementById('inBtn').value.trim()    || 'MASUK';
+        var title    = document.getElementById('inTitle').value.trim()  || 'Web';
+        var sub      = document.getElementById('inSub').value.trim()    || 'klik untuk lanjut';
+
+        genBtn.disabled = true;
+        genBtn.textContent = 'Menyusun HTML...';
+
+        setTimeout(function() {
+            var html = buildHTML(btnLabel, title, sub, selectedName, base64Data);
+            var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            var url  = URL.createObjectURL(blob);
+            var a    = document.createElement('a');
+            a.href     = url;
+            a.download = 'prank_' + title.replace(/\s+/g, '_') + '.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            genBtn.disabled = false;
+            genBtn.textContent = 'GENERATE HTML JEBAKAN ↓';
+            statusEl.textContent = '🎉 HTML jebakan berhasil dibuat & diunduh!';
+            statusEl.className = 'status ok';
+        }, 80);
+    });
+
+    function esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function buildHTML(btnLabel, title, sub, dlName, dataUrl) {
+        return '<!DOCTYPE html>\n' +
+'<html lang="id">\n' +
+'<head>\n' +
+'<meta charset="UTF-8">\n' +
+'<meta name="viewport" content="width=device-width,initial-scale=1.0">\n' +
+'<title>' + esc(title) + '</title>\n' +
+'<style>\n' +
+'*{margin:0;padding:0;box-sizing:border-box}\n' +
+'body{background:#0a0a0a;font-family:\'Segoe UI\',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}\n' +
+'.g{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:36px 36px;pointer-events:none}\n' +
+'.c{position:relative;z-index:10;text-align:center}\n' +
+'.t{color:#e0e0e0;font-size:.9rem;letter-spacing:.3em;text-transform:uppercase;margin-bottom:36px;opacity:.35}\n' +
+'.box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:48px 56px;backdrop-filter:blur(10px)}\n' +
+'.s{color:rgba(255,255,255,.28);font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;margin-bottom:26px;display:block}\n' +
+'.m{display:inline-block;color:#fff;font-size:2.8rem;font-weight:300;letter-spacing:.15em;cursor:pointer;text-decoration:none;position:relative;transition:color .2s;background:none;border:none;font-family:inherit;padding:0}\n' +
+'.m::after{content:\'\';position:absolute;bottom:-3px;left:0;width:100%;height:1px;background:rgba(255,255,255,.1);transition:background .2s}\n' +
+'.m:hover{color:#ddd}.m:hover::after{background:rgba(255,255,255,.25)}\n' +
+'.h{color:rgba(255,255,255,.12);font-size:.65rem;margin-top:36px;letter-spacing:.1em}\n' +
+'.fl{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9999;transition:opacity .05s}\n' +
+'.fl.on{opacity:1}\n' +
+'</style>\n' +
+'</head>\n' +
+'<body>\n' +
+'<div class="g"></div>\n' +
+'<div class="fl" id="f"></div>\n' +
+'<div class="c">\n' +
+'  <p class="t">\u2014 ' + esc(title) + ' \u2014</p>\n' +
+'  <div class="box">\n' +
+'    <span class="s">' + esc(sub) + '</span>\n' +
+'    <a class="m" href="' + dataUrl + '" download="' + esc(dlName) + '" onclick="go()">' + esc(btnLabel) + '</a>\n' +
+'    <p class="h">\u2219 &nbsp; tekan tulisan di atas &nbsp; \u2219</p>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>function go(){var f=document.getElementById(\'f\');f.classList.add(\'on\');setTimeout(function(){f.classList.remove(\'on\')},120);}<\/script>\n' +
+'</body>\n' +
+'</html>';
+    }
+</script>
+</body>
+</html>
